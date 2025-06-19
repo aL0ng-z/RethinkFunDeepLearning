@@ -9,8 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 # 1. BPE Tokenization (SentencePiece)
 # ---------------------#
 # 先运行以下命令训练 BPE 模型（只需运行一次）：
-# spm.SentencePieceTrainer.Train('--input=D:\\data\\train.en --model_prefix=en_bpe --vocab_size=16000 --model_type=bpe --character_coverage=1.0 --unk_id=0 --pad_id=1 --bos_id=2 --eos_id=3')
-# spm.SentencePieceTrainer.Train('--input="D:\\data\\train.zh" --model_prefix=zh_bpe --vocab_size=16000 --model_type=bpe --character_coverage=0.9995 --unk_id=0 --pad_id=1 --bos_id=2 --eos_id=3')
+# spm.SentencePieceTrainer.Train('--input="data\\en2cn\\train_en.txt" --model_prefix=en_bpe --vocab_size=16000 --model_type=bpe --character_coverage=1.0 --unk_id=0 --pad_id=1 --bos_id=2 --eos_id=3')
+# spm.SentencePieceTrainer.Train('--input="data\\en2cn\\train_zh.txt" --model_prefix=zh_bpe --vocab_size=16000 --model_type=bpe --character_coverage=0.9995 --unk_id=0 --pad_id=1 --bos_id=2 --eos_id=3')
 
 sp_en = spm.SentencePieceProcessor()
 sp_en.load('en_bpe.model')
@@ -25,7 +25,7 @@ def tokenize_en(text):
 def tokenize_cn(text):
     return sp_cn.encode(text, out_type=int)
 
-
+# 中文和英文一致,取英文。
 PAD_ID = sp_en.pad_id()  # 1
 UNK_ID = sp_en.unk_id()  # 0
 BOS_ID = sp_en.bos_id()  # 2
@@ -36,7 +36,9 @@ EOS_ID = sp_en.eos_id()  # 3
 # 2. Dataset & DataLoader
 # ---------------------#
 class TranslationDataset(Dataset):
-    def __init__(self, src_file, trg_file, src_tokenizer, trg_tokenizer, max_len=100):  # <-- 改动
+    ## 初始化方法，读取英文和中文训练文本。然后给每个句子前后增加<bos>和<eos>。 为了防止训练时显存不足，对于长度超过限制的
+    ## 句子进行过滤。
+    def __init__(self, src_file, trg_file, src_tokenizer, trg_tokenizer, max_len=100):
         with open(src_file, encoding='utf-8') as f:
             src_lines = f.read().splitlines()
         with open(trg_file, encoding='utf-8') as f:
@@ -46,18 +48,12 @@ class TranslationDataset(Dataset):
         self.src_tokenizer = src_tokenizer
         self.trg_tokenizer = trg_tokenizer
 
-        src_max = 0
-        trg_max = 0
         for src, trg in zip(src_lines, trg_lines):
+            # 每个句子前边增加<bos>后边增加<eos>
             src_ids = [BOS_ID] + self.src_tokenizer(src) + [EOS_ID]
             trg_ids = [BOS_ID] + self.trg_tokenizer(trg) + [EOS_ID]
-            # if len(src_ids)>src_max:
-            #     src_max = len(src_ids)
-            #     print("src max:", src_max)
-            # if len(trg_ids)>trg_max:
-            #     trg_max = len(trg_ids)
-            #     print("trg max:", trg_max)
-            if len(src_ids) <= max_len and len(trg_ids) <= max_len:  # <-- 过滤条件
+            # 只保留输入和输出序列token数同时小于max_len的训练样本。
+            if len(src_ids) <= max_len and len(trg_ids) <= max_len:
                 self.pairs.append((src_ids, trg_ids))  # <-- 直接保存token id序列
 
     def __len__(self):
@@ -67,6 +63,7 @@ class TranslationDataset(Dataset):
         src_ids, trg_ids = self.pairs[idx]
         return torch.LongTensor(src_ids), torch.LongTensor(trg_ids)
 
+    ## 对一个batch的输入和输出token序列，依照最长的序列长度，用<pad> token进行填充，确保一个batch的数据形状一致，组成一个tensor。
     @staticmethod
     def collate_fn(batch):
         src_batch, trg_batch = zip(*batch)
@@ -256,8 +253,8 @@ def train(model, iterator, optimizer, criterion, clip):
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    dataset = TranslationDataset('D:\\data\\train.en', 'D:\\data\\train.zh', tokenize_en, tokenize_cn)
-    loader = DataLoader(dataset, batch_size=48, shuffle=True, collate_fn=TranslationDataset.collate_fn)
+    dataset = TranslationDataset('data\\en2cn\\train_en.txt', 'data\\en2cn\\train_zh.txt', tokenize_en, tokenize_cn)
+    loader = DataLoader(dataset, batch_size=4, shuffle=True, collate_fn=TranslationDataset.collate_fn)
 
     INPUT_DIM = sp_en.get_piece_size()
     OUTPUT_DIM = sp_cn.get_piece_size()
