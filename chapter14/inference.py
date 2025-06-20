@@ -42,24 +42,26 @@ def translate_sentence(sentence, max_len=100):
     src_tensor = torch.LongTensor(tokens).unsqueeze(1).to(DEVICE)  # [src_len, 1]
     src_len = [len(tokens)]
 
-    # Encode
+    # 调用Encoder
     with torch.no_grad():
         encoder_outputs, hidden, cell = encoder(src_tensor, src_len)
 
-    # Prepare for decoding
+    # 第一个输入token，序列其实token：<bos>
     trg_indices = [BOS_ID]
-
+    # 逐个token，循环调用Decoder。
     for _ in range(max_len):
+        # 最新生成的token作为输入
         trg_tensor = torch.LongTensor([trg_indices[-1]]).to(DEVICE)
         with torch.no_grad():
             output, hidden, cell, _ = decoder(trg_tensor, hidden, cell, encoder_outputs,
                                                (src_tensor != PAD_ID).permute(1, 0))
+        # 取预测概率最大的token作为输出
         pred_token = output.argmax(1).item()
         trg_indices.append(pred_token)
         if pred_token == EOS_ID:
             break
 
-    # Decode IDs to text (skip BOS and EOS)
+    # 将token id解码为文字 (跳过<bos>和<eos>)
     translated = sp_cn.decode(trg_indices[1:-1])
     return translated
 

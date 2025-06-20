@@ -287,4 +287,4 @@ if __name__ == '__main__':
     for epoch in range(N_EPOCHS):
         loss = train(model, loader, optimizer, criterion)
         print(f'Epoch {epoch + 1}/{N_EPOCHS} | Loss: {loss:.4f}')
-        torch.save(model.state_dict(), f'seq2seq_bpe_attention_epoch{epoch + 1}.pt')
+        torch.save(model.state_dict(), 'seq2seq_bpe_attention.pt')
