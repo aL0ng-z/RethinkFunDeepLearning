@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import sentencepiece as spm
-import os
+#import os
 #os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 from transformer import build_transformer
@@ -68,22 +68,26 @@ class TranslationDataset(Dataset):
         src_batch, trg_batch = zip(*batch)
         src_lens = [len(x) for x in src_batch]
         trg_lens = [len(x) for x in trg_batch]
+        ## 注意，Transformer里的tensor，设置batch_frist=True。
         src_pad = nn.utils.rnn.pad_sequence(src_batch, batch_first=True, padding_value=PAD_ID)
         trg_pad = nn.utils.rnn.pad_sequence(trg_batch, batch_first=True,padding_value=PAD_ID)
         return src_pad, trg_pad, src_lens, trg_lens
 
 # === 数据集定义 ===
 def create_mask(src, tgt, pad_idx):
+    # mask <pad> token for encoder.
     src_mask = (src != pad_idx).unsqueeze(1).unsqueeze(2)  # (batch, 1, 1, src_len)
+    # mask <pad> token for decoder.
     tgt_pad_mask = (tgt != pad_idx).unsqueeze(1).unsqueeze(2)  # (batch, 1, 1, tgt_len)
 
     tgt_len = tgt.size(1)
+    # decoder mask 当前token后边的token。
     tgt_sub_mask = torch.tril(torch.ones((tgt_len, tgt_len), device=tgt.device)).bool()  # (tgt_len, tgt_len)
-
+    # decoder 同时mask <pad> token, 以及当前token后边的token。
     tgt_mask = tgt_pad_mask & tgt_sub_mask  # (batch, 1, tgt_len, tgt_len)
     return src_mask, tgt_mask
 
-def train(model, dataloader, optimizer, criterion, pad_idx, clip=1.0):
+def train(model, dataloader, optimizer, criterion, pad_idx):
     model.train()
     total_loss = 0
     step = 0
@@ -111,7 +115,6 @@ def train(model, dataloader, optimizer, criterion, pad_idx, clip=1.0):
         loss = criterion(output, tgt_output)
         loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
         optimizer.step()
 
         total_loss += loss.item()
@@ -135,7 +138,7 @@ def main():
     LR = 1e-4
 
     # 数据集加载
-    train_dataset = TranslationDataset('valid_en.txt', 'valid_zh.txt',tokenize_en, tokenize_cn)
+    train_dataset = TranslationDataset('data/en2cn/train_en.txt', 'data/en2cn/train_zh.txt',tokenize_en, tokenize_cn)
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, collate_fn=train_dataset.collate_fn)
 
     # 构建模型
@@ -148,7 +151,7 @@ def main():
         loss = train(model, train_dataloader, optimizer, criterion, PAD_ID)
         print(f"Epoch {epoch+1}/{NUM_EPOCHS} - Loss: {loss:.4f}")
 
-        torch.save(model.state_dict(), f"transformer_epoch_{epoch+1}.pt")
+        torch.save(model.state_dict(), "transformer.pt")
 
 if __name__ == "__main__":
     main()
