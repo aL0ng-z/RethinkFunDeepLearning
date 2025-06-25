@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
-
+#os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 # ---------------------#
 # 1. BPE Tokenization (SentencePiece)
 # ---------------------#
@@ -162,9 +162,9 @@ class Decoder(nn.Module):
         self.n_layers = n_layers
         self.embedding = nn.Embedding(output_dim, emb_dim, padding_idx=PAD_ID)
         # 单向LSTM，输入维度为注意力加权后的，Encoder输出隐状态维度（hid_dim*2）加上输入token的embedding的维度emb_dim。
-        self.lstm = nn.LSTM(hid_dim * 2 + emb_dim, hid_dim,num_layers=n_layers)
+        self.rnn = nn.LSTM(hid_dim * 2 + emb_dim, hid_dim,num_layers=n_layers)
         # 最终分类头，输入为hid_dim，输出为字典大小
-        self.fc_out = nn.Linear(hid_dim, output_dim)
+        self.fc_out = nn.Linear(hid_dim*3, output_dim)
 
     def forward(self, input_token, hidden, cell, encoder_outputs, mask):
         # input_token: [batch]
@@ -186,12 +186,13 @@ class Decoder(nn.Module):
         # 拼接输入token编码向量和注意力上下文向量
         lstm_input = torch.cat((embedded, weighted), dim=2)  # [1, batch, emb_dim + enc_hid_dim*2]
         # 一次只执行lstm的一个时间步。
-        output, (hidden, cell) = self.lstm(lstm_input, (hidden, cell))  # output: [1, batch, hid_dim]
+        output, (hidden, cell) = self.rnn(lstm_input, (hidden, cell))  # output: [1, batch, hid_dim]
 
         # 移除第0维（第一个维度）
         output = output.squeeze(0)  # [batch, hid_dim]
+        weighted = weighted.squeeze(0)
         # 计算分类logtis
-        prediction = self.fc_out(output)  # [batch, output_dim]
+        prediction = self.fc_out(torch.cat((output, weighted), dim=1))  # [batch, output_dim]
 
         return prediction, hidden, cell, a.squeeze(1)  # attention weights for visualization
 
@@ -265,20 +266,20 @@ def train(model, iterator, optimizer, criterion):
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    dataset = TranslationDataset('data\\en2cn\\valid_en.txt', 'data\\en2cn\\valid_zh.txt', tokenize_en, tokenize_cn)
-    loader = DataLoader(dataset, batch_size=4, shuffle=True, collate_fn=TranslationDataset.collate_fn)
+    dataset = TranslationDataset('data/en2cn/train_en.txt', 'data/en2cn/train_zh.txt', tokenize_en, tokenize_cn)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True, collate_fn=TranslationDataset.collate_fn)
 
     INPUT_DIM = sp_en.get_piece_size()
     OUTPUT_DIM = sp_cn.get_piece_size()
     ENC_EMB_DIM = 512
     DEC_EMB_DIM = 512
-    HID_DIM = 1024
+    HID_DIM = 512
 
     attention = Attention(HID_DIM).to(device)
     encoder = Encoder(INPUT_DIM, ENC_EMB_DIM, HID_DIM).to(device)
     decoder = Decoder(OUTPUT_DIM, DEC_EMB_DIM, HID_DIM, attention).to(device)
     model = Seq2Seq(encoder, decoder, device).to(device)
-
+    model.load_state_dict(torch.load('seq2seq_bpe_attention.pt', map_location=device))
     optimizer = optim.Adam(model.parameters())
     criterion = nn.CrossEntropyLoss(ignore_index=PAD_ID)
 

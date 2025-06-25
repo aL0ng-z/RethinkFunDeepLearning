@@ -21,10 +21,10 @@ DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Model hyperparameters (must match training)
 INPUT_DIM = sp_en.get_piece_size()
 OUTPUT_DIM = sp_cn.get_piece_size()
-ENC_EMB_DIM = 256
-DEC_EMB_DIM = 256
+ENC_EMB_DIM = 512
+DEC_EMB_DIM = 512
 HID_DIM = 512
-N_LAYERS = 2
+N_LAYERS = 3
 
 attention = Attention(HID_DIM).to(DEVICE)
 encoder = Encoder(INPUT_DIM, ENC_EMB_DIM, HID_DIM, n_layers=N_LAYERS).to(DEVICE)
