@@ -191,7 +191,7 @@ class Decoder(nn.Module):
         # 移除第0维（第一个维度）
         output = output.squeeze(0)  # [batch, hid_dim]
         weighted = weighted.squeeze(0)
-        # 计算分类logtis
+        # 拼接输出和注意力上下文向量，进入分类头，计算分类logtis
         prediction = self.fc_out(torch.cat((output, weighted), dim=1))  # [batch, output_dim]
 
         return prediction, hidden, cell, a.squeeze(1)  # attention weights for visualization
