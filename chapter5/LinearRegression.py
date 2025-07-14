@@ -12,24 +12,21 @@ y = [60, 85, 100, 120, 140, 145, 163]  # Label 数据
 
 # 初始化参数
 w = [0.0, 0.0, 0.0]  # w0, w1, w2
-alpha = 0.001  # 学习率
+alpha = 0.0001  # 学习率
 num_iterations = 10000  # 迭代次数
-
-# 添加截距项 x0 = 1
-X = [[1] + row for row in X]
 
 # 梯度下降
 for i in range(num_iterations):
     # 预测值
-    y_pred = [w[0] + w[1] * row[1] + w[2] * row[2] for row in X]
+    y_pred = [w[0] * row[0] + w[1] * row[0] + w[2] * row[1] for row in X]
 
     # 计算损失
     loss = sum((y_pred[j] - y[j]) ** 2 for j in range(len(y))) / len(y)
 
     # 计算梯度
     grad_w0 = 2 * sum(y_pred[j] - y[j] for j in range(len(y))) / len(y)
-    grad_w1 = 2 * sum((y_pred[j] - y[j]) * X[j][1] for j in range(len(y))) / len(y)
-    grad_w2 = 2 * sum((y_pred[j] - y[j]) * X[j][2] for j in range(len(y))) / len(y)
+    grad_w1 = 2 * sum((y_pred[j] - y[j]) * X[j][0] for j in range(len(y))) / len(y)
+    grad_w2 = 2 * sum((y_pred[j] - y[j]) * X[j][1] for j in range(len(y))) / len(y)
 
     # 更新参数
     w[0] -= alpha * grad_w0
