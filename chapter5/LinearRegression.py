@@ -8,7 +8,7 @@ num_iterations = 10000  # 迭代次数
 # 梯度下降
 for i in range(num_iterations):
     # 预测值
-    y_pred = [w[0] + w[1] * row[0] + w[2] * row[1] for row in X]
+    y_pred = [w[0] + w[1] * x[0] + w[2] * x[1] for x in X]
     # 计算损失
     loss = sum((y_pred[j] - y[j]) ** 2 for j in range(len(y))) / len(y)
     # 计算梯度
