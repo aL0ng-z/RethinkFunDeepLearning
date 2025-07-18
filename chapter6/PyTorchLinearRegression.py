@@ -11,8 +11,8 @@ targets = inputs @ weights + bias + 0.1*torch.randn(100, 1) #增加一些随机�
 
 
 # 初始化参数时直接放在CUDA上，并启用梯度追踪
-w = torch.rand(3, 1, requires_grad=True, device=device)
-b = torch.rand(1, requires_grad=True, device=device)
+w = torch.rand((3, 1), requires_grad=True, device=device)
+b = torch.rand((1,), requires_grad=True, device=device)
 
 # 将数据移至相同设备
 inputs = inputs.to(device)
