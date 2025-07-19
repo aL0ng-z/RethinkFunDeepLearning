@@ -11,7 +11,7 @@ bias = torch.tensor(4.4)
 targets = inputs @ weights + bias + 0.1 * torch.randn(100, 1)  # 增加一些随机，模拟真实情况
 
 # 创建一个SummaryWriter实例
-writer = SummaryWriter(log_dir="runs/lr")
+writer = SummaryWriter(log_dir="C:/projects/lr/runs/")
 
 # 初始化参数时直接放在CUDA上，并启用梯度追踪
 w = torch.rand(3, 1, requires_grad=True, device=device)
