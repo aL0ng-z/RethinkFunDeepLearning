@@ -7,7 +7,7 @@ from torchvision import transforms
 import torch.nn as nn
 import os
 
-torchvision.models.resnet18()
+
 def verify_images(image_folder):
     classes = ["Cat", "Dog"]
     class_to_idx = {"Cat": 0, "Dog": 1}
@@ -51,19 +51,15 @@ class CNNModel(nn.Module):
             nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2, stride=2),
-
             nn.Conv2d(in_channels=128, out_channels=1, kernel_size=1),  # 1乘1卷积
             nn.AdaptiveAvgPool2d((1, 1)),  # 全局平均池化层
             nn.Flatten(),
@@ -110,29 +106,14 @@ if __name__ == "__main__":
     train_samples = all_samples[:train_size]
     valid_samples = all_samples[train_size:]
 
-    train_transform = transforms.Compose([
-        transforms.Resize((150, 150)),
-        transforms.RandomCrop(size=(IMG_SIZE, IMG_SIZE)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.ColorJitter(
-            brightness=0.2,
-            contrast=0.2,
-            # saturation=0.2,
-            # hue=0.1
-        ),
-        #transforms.RandomRotation(degrees=30),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-    ])
-
-    valid_transform = transforms.Compose([
+    data_transform  = transforms.Compose([
         transforms.Resize((IMG_SIZE, IMG_SIZE)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    train_dataset = ImageDataset(train_samples, train_transform)
-    valid_dataset = ImageDataset(valid_samples, valid_transform)
+    train_dataset = ImageDataset(train_samples, data_transform )
+    valid_dataset = ImageDataset(valid_samples, data_transform )
 
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     valid_dataloader = DataLoader(valid_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
