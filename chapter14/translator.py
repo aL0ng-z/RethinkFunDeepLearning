@@ -140,7 +140,7 @@ class Encoder(nn.Module):
         final_cell = []
 
         for layer in range(self.n_layers):
-            # 对每一层将正向和反向的隐状态，细胞状态合并，通过一个线性层将维度从hid_dim*2降低为hid_dim维度。
+            # 对LSTM每一层最后一个时间步，将隐状态的正向和反向状态合并，细胞状态的正向和反向状态合并，分别通过一个线性层将维度从hid_dim*2降低为hid_dim维度。
             h_cat = torch.cat((hidden[layer][-2], hidden[layer][-1]), dim=1)
             c_cat = torch.cat((cell[layer][-2], cell[layer][-1]), dim=1)
             h_layer = torch.tanh(self.fc_hidden[layer](h_cat)).unsqueeze(0)
