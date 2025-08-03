@@ -163,7 +163,10 @@ class Decoder(nn.Module):
         self.embedding = nn.Embedding(output_dim, emb_dim, padding_idx=PAD_ID)
         # 单向LSTM，输入维度为注意力加权后的，Encoder输出隐状态维度（hid_dim*2）加上输入token的embedding的维度emb_dim。
         self.rnn = nn.LSTM(hid_dim * 2 + emb_dim, hid_dim,num_layers=n_layers)
-        # 最终分类头，输入为hid_dim，输出为字典大小
+        # 定义最终分类头，输入为3倍的hid_dim，输出为字典大小。
+        # 为什么输入是3倍的hid_dim呢？
+        # 因为预测中文token时，输入不光是Decoder的最后一层的隐状态，还拼接了注意力向量。
+        # 这样对这个时间步生成翻译的中文token会有帮助。而注意力向量来自双向的Encoder，所以要额外加上一个2倍的hid_dim.
         self.fc_out = nn.Linear(hid_dim*3, output_dim)
 
     def forward(self, input_token, hidden, cell, encoder_outputs, mask):
