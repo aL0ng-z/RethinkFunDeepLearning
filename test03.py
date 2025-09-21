@@ -18,8 +18,9 @@ class LogisticRegressionModel(nn.Module):
 
 
 class TitanicDataset(Dataset):
-    def __init__(self, file_path):
+    def __init__(self, file_path, is_test=False):
         self.file_path = file_path
+        self.is_test = is_test
         self.mean = {
             "Pclass": 2.236695,
             "Age": 29.699118,
@@ -126,10 +127,13 @@ def split_train_validation(input_file, train_file, validation_file):
     validation_df.to_csv(validation_file, index=False)
 
 
-split_train_validation(r".\data\titanic\raw-train.csv", r".\data\titanic\train.csv", r".\data\titanic\validation.csv")
-train_dataset = TitanicDataset(r".\data\titanic\train.csv")
-validation_dataset = TitanicDataset(r".\data\titanic\validation.csv")
-test_dataset = TitanicDataset(r".\data\titanic\test.csv")
+split_train_validation("./data/titanic/raw-train.csv", "./data/titanic/train.csv", "./data/titanic/validation.csv")
+train_dataset = TitanicDataset("./data/titanic/train.csv")
+validation_dataset = TitanicDataset("./data/titanic/validation.csv")
+test_dataset = TitanicDataset("./data/titanic/test.csv", is_test=True)
+train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+validation_dataloader = DataLoader(validation_dataset, batch_size=32, shuffle=False)
+test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 model = LogisticRegressionModel(train_dataset.feature_size)
 model.to("cuda")
@@ -143,7 +147,7 @@ for epoch in range(epochs):
     correct = 0
     step = 0
     total_loss = 0
-    for features, labels in DataLoader(train_dataset, batch_size=256, shuffle=True):
+    for features, labels in train_dataloader:
         step += 1
         features = features.to("cuda")
         labels = labels.to("cuda")
@@ -164,7 +168,7 @@ for epoch in range(epochs):
         val_correct = 0
         val_loss = 0
         val_step = 0
-        for features, labels in DataLoader(validation_dataset, batch_size=256):
+        for features, labels in validation_dataloader:
             val_step += 1
             features = features.to("cuda")
             labels = labels.to("cuda")
